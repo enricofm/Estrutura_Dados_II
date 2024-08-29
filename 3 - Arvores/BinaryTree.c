@@ -1,3 +1,4 @@
+// Aluno: Enrico Freitas Modena - CC6M
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -32,66 +33,54 @@ Arv *inserir(Arv *arv, int dado) {
   return arv;
 }
 
-Arv *encontrarMinimo(Arv *arv) {
-  Arv *atual = arv;
-  while (atual && atual->esq != NULL) {
-    atual = atual->esq;
-  }
-  return atual;
-}
-
-Arv *liberaArv(Arv *arv, int valor) {
-  if (arv == NULL) {
-    return arv;
-  }
-
-  if (valor < arv->dado) {
-    arv->esq = liberaArv(arv->esq, valor);
-  } else if (valor > arv->dado) {
-    arv->dir = liberaArv(arv->dir, valor);
+Arv *encontrarMenor(Arv *arv) {
+  if (arv->esq != NULL) {
+    return encontrarMenor(arv->esq);
   } else {
-    if (arv->esq == NULL) {
-      Arv *temp = arv->dir;
-      free(arv);
-      return temp;
-    } else if (arv->dir == NULL) {
-      Arv *temp = arv->esq;
-      free(arv);
-      return temp;
-    }
-
-    Arv *temp = encontrarMinimo(arv->dir);
-    arv->dado = temp->dado;
-    arv->dir = liberaArv(arv->dir, temp->dado);
+    Arv *aux = arv;
+    if (arv->dir != NULL)
+      arv = arv->dir;
+    else
+      arv = NULL;
+    return aux;
   }
-  return arv;
 }
 
-Arv *excluirNo(Arv *arv, int valor) {
+Arv *liberarNo(Arv *arv, int dado) {
   if (arv == NULL) {
     return NULL;
   }
 
-  if (valor < arv->dado) {
-    arv->esq = excluirNo(arv->esq, valor);
-  } else if (valor > arv->dado) {
-    arv->dir = excluirNo(arv->dir, valor);
-  } else {
-    // Nó encontrado
-    if (arv->esq == NULL) {
-      Arv *dir = arv->dir;
+  if (dado < arv->dado) {
+    arv->esq = liberarNo(arv->esq, dado);
+  } else if (dado > arv->dado) {
+    arv->dir = liberarNo(arv->dir, dado);
+  } else { // Nó encontrado
+    // Caso o nó seja folha
+    if (arv->esq == NULL && arv->dir == NULL) {
       free(arv);
-      return dir;
-    } else if (arv->dir == NULL) {
-      Arv *esq = arv->esq;
-      free(arv);
-      return esq;
+      return NULL;
     }
-
-    // Nó com dois filhos, encontra o sucessor in-order
-    Arv *sucessor = encontrarMinimo(arv->dir);
-    arv->dado = sucessor->dado;
-    arv->dir = excluirNo(arv->dir, sucessor->dado);
+    // Caso o nó tenha apenas um filho à direita
+    else if (arv->esq == NULL) {
+      Arv *temp = arv->dir;
+      free(arv);
+      return temp;
+    }
+    // Caso o nó tenha apenas um filho à esquerda
+    else if (arv->dir == NULL) {
+      Arv *temp = arv->esq;
+      free(arv);
+      return temp;
+    }
+    // Caso o nó tenha dois filhos
+    else {
+      Arv *temp = encontrarMenor(arv->dir); // Pega o menor valor da sad
+      arv->dado = temp->dado; // Substitui o valor do nó atual pelo menor valor
+                              // da subárvore direita
+      arv->dir = liberarNo(
+          arv->dir, temp->dado); // Remove o nó menor na subárvore direita
+    }
   }
   return arv;
 }
@@ -149,7 +138,17 @@ int main() {
   percorrerEmOrdem(a);
   printf("\n\n");
 
-  excluirNo(a, 10);
+  printf("Pre Ordem: ");
+  percorrerPreOrdem(a);
+  printf("\n\n");
+
+  printf("Pos Ordem: ");
+  percorrerPosOrdem(a);
+  printf("\n\n");
+
+  printf("Remove 10...");
+  liberarNo(a, 10);
+  printf("\n\n");
 
   printf("Em Ordem: ");
   percorrerEmOrdem(a);
