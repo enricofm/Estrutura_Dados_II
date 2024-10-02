@@ -1,191 +1,173 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// Definição dos possíveis valores de cor
 #define VERMELHO 0
 #define PRETO 1
 
-// Definição da estrutura de um nó da árvore Red-Black
-struct No
-{
-    int valor;
-    int cor;
-    struct No *esquerda, *direita, *pai;
+struct No {
+  int valor;
+  int cor;
+  struct No *esquerda, *direita, *pai;
 };
 
 typedef struct No No;
 
-// Função para criar um novo nó
-No *criarNo(int valor)
-{
-    No *novoNo = (No *)malloc(sizeof(No));
-    novoNo->valor = valor;
-    novoNo->cor = VERMELHO;
-    novoNo->esquerda = novoNo->direita = novoNo->pai = NULL;
-    return novoNo;
+// Raiz incial pra arvore
+No *raiz = NULL;
+
+// Insere nó na arvore
+No *inserir(No *no, No *temp) {
+  if (no == NULL)
+    return temp;
+
+  // Percorre a arvore recursivamente
+  if (temp->valor < no->valor) {
+    no->esquerda = inserir(no->esquerda, temp);
+    no->esquerda->pai = no;
+  } else if (temp->valor > no->valor) {
+    no->direita = inserir(no->direita, temp);
+    no->direita->pai = no;
+  }
+
+  return no;
 }
 
-// Função para fazer a rotação à esquerda
-void rotacaoEsquerda(No **raiz, No *x)
-{
-    No *y = x->direita;
-    x->direita = y->esquerda;
-    if (y->esquerda != NULL)
-        y->esquerda->pai = x;
-    y->pai = x->pai;
-    if (x->pai == NULL)
-        *raiz = y;
-    else if (x == x->pai->esquerda)
-        x->pai->esquerda = y;
-    else
-        x->pai->direita = y;
-    y->esquerda = x;
-    x->pai = y;
+// Executa a rotação a direita
+void rotacaoDireita(No *temp) {
+  No *esquerda = temp->esquerda;
+  temp->esquerda = esquerda->direita;
+
+  if (temp->esquerda)
+    temp->esquerda->pai = temp;
+
+  esquerda->pai = temp->pai;
+
+  if (!temp->pai)
+    raiz = esquerda;
+  else if (temp == temp->pai->esquerda)
+    temp->pai->esquerda = esquerda;
+  else
+    temp->pai->direita = esquerda;
+
+  esquerda->direita = temp;
+  temp->pai = esquerda;
 }
 
-// Função para fazer a rotação à direita
-void rotacaoDireita(No **raiz, No *x)
-{
-    No *y = x->esquerda;
-    x->esquerda = y->direita;
-    if (y->direita != NULL)
-        y->direita->pai = x;
-    y->pai = x->pai;
-    if (x->pai == NULL)
-        *raiz = y;
-    else if (x == x->pai->direita)
-        x->pai->direita = y;
-    else
-        x->pai->esquerda = y;
-    y->direita = x;
-    x->pai = y;
+// Executa a rotação a esquerda
+void rotacaoEsquerda(No *temp) {
+  No *direita = temp->direita;
+  temp->direita = direita->esquerda;
+
+  if (temp->direita)
+    temp->direita->pai = temp;
+
+  direita->pai = temp->pai;
+
+  if (!temp->pai)
+    raiz = direita;
+  else if (temp == temp->pai->esquerda)
+    temp->pai->esquerda = direita;
+  else
+    temp->pai->direita = direita;
+
+  direita->esquerda = temp;
+  temp->pai = direita;
 }
 
-// Função para balancear a árvore após a inserção de um nó
-void corrigirViolacao(No **raiz, No *z)
-{
-    while (z != *raiz && z->pai->cor == VERMELHO)
-    {
-        if (z->pai == z->pai->pai->esquerda)
-        {
-            No *y = z->pai->pai->direita;
-            if (y != NULL && y->cor == VERMELHO)
-            {
-                z->pai->cor = PRETO;
-                y->cor = PRETO;
-                z->pai->pai->cor = VERMELHO;
-                z = z->pai->pai;
-            }
-            else
-            {
-                if (z == z->pai->direita)
-                {
-                    z = z->pai;
-                    rotacaoEsquerda(raiz, z);
-                }
-                z->pai->cor = PRETO;
-                z->pai->pai->cor = VERMELHO;
-                rotacaoDireita(raiz, z->pai->pai);
-            }
+// Corrige as violações após a inserção na árvore
+void corrigir(No *raiz, No *z) {
+  No *pai_z = NULL;
+  No *avo_z = NULL;
+
+  while ((z != raiz) && (z->cor != PRETO) && (z->pai->cor == VERMELHO)) {
+    pai_z = z->pai;
+    avo_z = z->pai->pai;
+
+    // O pai de z é o filho esquerdo do avô de z
+    if (pai_z == avo_z->esquerda) {
+      No *tio_z = avo_z->direita;
+
+      // O tio de z tb é vermelho (corrige as cores)
+      if (tio_z != NULL && tio_z->cor == VERMELHO) {
+        avo_z->cor = VERMELHO;
+        pai_z->cor = PRETO;
+        tio_z->cor = PRETO;
+        z = avo_z;
+      } else {
+        // z é o filho direito de seu pai (rotaciona a esquerda)
+        if (z == pai_z->direita) {
+          rotacaoEsquerda(pai_z);
+          z = pai_z;
+          pai_z = z->pai;
         }
-        else
-        {
-            No *y = z->pai->pai->esquerda;
-            if (y != NULL && y->cor == VERMELHO)
-            {
-                z->pai->cor = PRETO;
-                y->cor = PRETO;
-                z->pai->pai->cor = VERMELHO;
-                z = z->pai->pai;
-            }
-            else
-            {
-                if (z == z->pai->esquerda)
-                {
-                    z = z->pai;
-                    rotacaoDireita(raiz, z);
-                }
-                z->pai->cor = PRETO;
-                z->pai->pai->cor = VERMELHO;
-                rotacaoEsquerda(raiz, z->pai->pai);
-            }
+
+        // z é o filho esquerdo de seu pai (rotacionar a direita)
+        rotacaoDireita(avo_z);
+        int t = pai_z->cor;
+        pai_z->cor = avo_z->cor;
+        avo_z->cor = t;
+        z = pai_z;
+      }
+    }
+    // O pai de z é o filho direito do avô de z
+    else {
+      No *tio_z = avo_z->esquerda;
+
+      // O tio de z tb é vermelho (corrige as cores)
+      if (tio_z != NULL && tio_z->cor == VERMELHO) {
+        avo_z->cor = VERMELHO;
+        pai_z->cor = PRETO;
+        tio_z->cor = PRETO;
+        z = avo_z;
+      } else {
+        // z é o filho esquerdo de seu pai (rotaciona a direita)
+        if (z == pai_z->esquerda) {
+          rotacaoDireita(pai_z);
+          z = pai_z;
+          pai_z = z->pai;
         }
+
+        // z é o filho direito de seu pai (rotaciona a esquerda)
+        rotacaoEsquerda(avo_z);
+        int t = pai_z->cor;
+        pai_z->cor = avo_z->cor;
+        avo_z->cor = t;
+        z = pai_z;
+      }
     }
-    (*raiz)->cor = PRETO;
+  }
+  raiz->cor = PRETO;
 }
 
-// Função para inserir um novo nó na árvore Red-Black
-void inserir(No **raiz, int valor)
-{
-    No *z = criarNo(valor);
-    No *y = NULL;
-    No *x = *raiz;
-
-    while (x != NULL)
-    {
-        y = x;
-        if (z->valor < x->valor)
-            x = x->esquerda;
-        else
-            x = x->direita;
-    }
-    z->pai = y;
-    if (y == NULL)
-        *raiz = z;
-    else if (z->valor < y->valor)
-        y->esquerda = z;
-    else
-        y->direita = z;
-
-    corrigirViolacao(raiz, z);
+// Função para percorrer a árvore em ordem
+void percorrerEmOrdem(No *no) {
+  if (no == NULL)
+    return;
+  percorrerEmOrdem(no->esquerda);
+  printf("%d ", no->valor);
+  percorrerEmOrdem(no->direita);
 }
 
-// Função para imprimir a árvore Red-Black em ordem
-void emOrdem(No *raiz)
-{
-    if (raiz != NULL)
-    {
-        emOrdem(raiz->esquerda);
-        if (raiz->cor == 0)
-            printf("%d RED", raiz->valor);
-        else
-            printf("%d BLK", raiz->valor);
-        emOrdem(raiz->direita);
-    }
-}
+int main() {
+  int n = 7;
+  int valores[7] = {7, 6, 5, 4, 3, 2, 1};
 
-// Função para imprimir a árvore de acordo com o formato esquerda-raiz-direita segundo Sedgewick
-void imprimeArvoreRB(No *raiz, int b)
-{
-    if (raiz != NULL)
-    {
-        // Chama a função recursivamente para percorrer a subárvore direita
-        imprimeArvoreRB(raiz->direita, b + 1);
+  for (int i = 0; i < n; i++) {
+    No *temp = (No *)malloc(sizeof(No));
+    temp->direita = NULL;
+    temp->esquerda = NULL;
+    temp->pai = NULL;
+    temp->valor = valores[i];
+    temp->cor = VERMELHO;
 
-        // Imprime o valor do nó atual com um espaçamento proporcional à sua profundidade
-        for (int i = 0; i < b; i++)
-            printf("       "); // espaços por nível
-        if (raiz->cor == 0)
-            printf("\033[31m%d\033[0m\n\n", raiz->valor);
-        else
-            printf("%d\n\n", raiz->valor);
+    raiz = inserir(raiz, temp);
 
-        // Chama a função recursivamente para percorrer a subárvore esquerda
-        imprimeArvoreRB(raiz->esquerda, b + 1);
-    }
-}
+    // Corrige a árvore redblack
+    corrigir(raiz, temp);
+  }
 
-int main()
-{
-    struct No *raiz = NULL;
-    // Exemplo de inserção de valores na árvore Red-Black
-    int vetor[] = {12, 31, 20, 17, 11, 8, 3, 24, 15, 33};
-    int i, tam = sizeof(vetor) / sizeof(vetor[0]);
-    for (i = 0; i < tam; i++)
-        inserir(&raiz, vetor[i]);
-    printf("Árvore Red-Black: \n");
-    imprimeArvoreRB(raiz, 3);
-    printf("\n");
+  printf("Percorrendo em ordem:\n");
+  percorrerEmOrdem(raiz);
 
-    return 0;
+  return 0;
 }
